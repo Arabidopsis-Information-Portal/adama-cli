@@ -1,0 +1,206 @@
+#!/usr/bin/env python
+
+API_SERVER = 'https://api.araport.org/'
+API_ENDPOINT = API_SERVER + 'community/v0.3'
+TENANT = 'araport.org'
+
+default_namespace = 'foo'
+
+import os
+import requests
+import json
+import click
+import agavepy
+import adamalib
+
+#Authentication
+
+class AdamaCli(object):
+    def __init__(self, username='', access_token='', debug=False, verbose=True):
+        self.home = 'HOME!'
+        self.username = username
+        self.access_token = access_token
+        self.debug = debug
+        self.verbose = verbose
+
+@click.group()
+@click.option('--username', '-u', envvar='ADAMA_USERNAME', default='')
+@click.option('--access-token', '-z', envvar='ADAMA_TOKEN', default='')
+@click.option('--debug', '-d', is_flag=True,
+              envvar='ADAMA_DEBUG')
+@click.option('--verbose', '-v', is_flag=True, default=False,
+              envvar='ADAMA_VERBOSE')
+@click.pass_context
+def cli(ctx, username, access_token, debug, verbose):
+    ctx.obj = AdamaCli(username, access_token, debug, verbose)
+
+@cli.command()
+@click.pass_obj
+def status(adama):
+    """Return API status"""
+    print 'Adama status'
+    # I will add flag behavior to augment simple status return with a deeper dive
+    # For instance, walk every namespace, service and return
+    # health endpoint. Format result as a tabular report -or- JSON document
+    # Admin users will have access to all ns/service
+    # Regular users will have access to just their own ns/services
+
+
+@cli.command('namespace-list')
+@click.argument('name', default='', nargs=1)
+@click.option('--filter', default='', help='Filter string')
+@click.pass_obj
+def namespace_list(adama, name, filter):
+    """List namespace(s)"""
+    print 'namespace-list ' + name
+    # implement logic to list all if no value passed
+    # otherwise fetch and display one namespace
+
+@cli.command('namespace-delete')
+@click.argument('name', nargs=1)
+@click.option('--force', '-f', default=False, is_flag=True, help='Delete even if there are services present')
+@click.pass_obj
+def namespace_delete(adama, name, force):
+    """Delete a namespace"""
+    print 'namespace-delete '  + name
+    if force:
+        print 'forcing'
+    # Issues a DELETE on the namespace. This is permanent.
+    # Will implement check in the CLI if Adama doesn't do it
+    # to check for child services first
+
+@cli.command('namespace-addupdate')
+@click.argument('name', nargs=1)
+@click.option('--description' ,'-D', default='', nargs=1, help='Short descriptive text')
+@click.option('--uri' ,'-U', default='', nargs=1, help='URI associated with namespace')
+@click.pass_obj
+def namespace_addupdate(adama, name, description, uri):
+    """Create or update namespace"""
+    print 'namespace-addupdate'
+    # If service exists, do a PUT, otherwise, assemble a POST
+    # Poll status endpoint until sucess or failure
+    # Pretty print error log on failure
+
+@cli.command('namespace-pems-update')
+@click.pass_obj
+def namespace_pems_update(adama):
+    """Not implemented: Update permissions on namespace."""
+    pass
+
+@cli.command('namespace-set')
+@click.argument('name', nargs=1)
+@click.pass_obj
+def namespace_set(adama, name):
+    """Set working namespace in CLI"""
+    print 'namespace-set ' + name
+    default_namespace = name
+    # Current namespace is an attribute set in the adamacli cache
+    # (and also an attribute of the adama object?)
+    # Check for existence of namespace before setting
+
+@cli.command('namespace-unset')
+@click.pass_obj
+def namespace_unset(adama):
+    """Unset working namespace in CLI"""
+    print 'namespace-unset '
+    # Current namespace is an attribute set in the adamacli cache
+    # (and also an attribute of the adama object?)
+
+
+@cli.command('service-list')
+@click.argument('service', default='', nargs=1)
+@click.option('--namespace', default=default_namespace, nargs=1, help='Specify namespace to list')
+@click.option('--filter', default='')
+@click.option('--limit', default=50)
+@click.pass_obj
+def service_list(adama, service, namespace, filter, limit):
+    """List service(s)"""
+    print 'service-list ' + namespace + '/' + service
+    print '\tlimit: ' + str(limit)
+    print '\tfilter: ' + filter
+    # List all services in namespace X unless either
+    # a specific name if given or a filter is specified
+
+@cli.command('service-addupdate')
+@click.argument('service', default='', nargs=1)
+@click.option('--namespace', default=default_namespace, nargs=1, help='Specify namespace - overrides default')
+@click.option('--git-repo', nargs=1, help='Public git repo for code')
+@click.option('--git-branch', default='master', nargs=1, help='Branch to deploy from')
+@click.pass_obj
+def service_addupdate(adama, namespace, service, git_repo, git_branch, git_tag):
+    """Add or update a service"""
+    print 'service-addupdate ' + namespace + '/' + service
+    print '\t' + git_repo + ':' + git_branch
+    # Perform a POST or PUT depdending on whether service exists
+
+@cli.command('service-delete')
+@click.argument('service', nargs=1)
+@click.option('--namespace', default=default_namespace, nargs=1, help='Specify namespace - overrides default')
+@click.pass_obj
+def service_delete(adama, namespace, service):
+    """Delete a service"""
+    print 'service-delete ' + namespace + '/' + service
+    # Issues a DELETE on namespace/service. This is permanent.
+
+@cli.command('service-deprecate')
+@click.argument('service', nargs=1)
+@click.option('--namespace', default=default_namespace, nargs=1, help='Specify namespace - overrides default')
+@click.pass_obj
+def service_disable(adama, namespace, service):
+    """Deprecate a service"""
+    print 'service-deprecate ' + namespace + '/' + service
+    # Not implemented in ADAMA. Option to return HTTP status 302 (or similar) code for services that USED to exist
+    # Still permanent
+
+### Non-service Utility Functions
+# Based on functions in adamalib
+#
+# Build and validate metadata record
+# Metadata-to-prov
+# Build and validate a JSON ResponseTemplate
+# Query a service and return reponse
+
+@cli.command('auth-check')
+@click.pass_obj
+def auth_check(adama):
+    """Check status of auth token"""
+    print 'auth-check'
+    pass
+
+@cli.command('auth-tokens-create')
+@click.pass_obj
+def auth_tokens_create(adama):
+    """Create a new token"""
+    print 'auth-tokens-create'
+    pass
+
+@cli.command('auth-tokens-refresh')
+@click.pass_obj
+def auth_tokens_refresh(adama):
+    """Refresh current token"""
+    print 'auth-tokens-refresh'
+    pass
+
+@cli.command('clients-create')
+@click.pass_obj
+def clients_create(adama):
+    """Create a new OAuth client"""
+    print 'clients-create '
+    pass
+
+@cli.command('clients-delete')
+@click.pass_obj
+def clients_delete(adama):
+    """Delete an existing new OAuth client"""
+    print 'clients-delete '
+    pass
+
+@cli.command('clients-list')
+@click.pass_obj
+def clients_list(adama):
+    """List user's OAuth clients"""
+    print 'clients-list '
+    pass
+
+if __name__ == '__main__':
+    cli()

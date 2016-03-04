@@ -1,0 +1,6 @@
+requests==2.6.0
+click==6.3
+agavepy==0.3.8
+adamalib==0.1.0
+Jinja2==2.7.3
+
